@@ -1,4 +1,4 @@
-# NPOS
+# ,NPOS
 [TOC]
 ## Overview
 - The Goal of this project is to bring a single tasking, terminal-based Operating System & Kernel to an x64 machine.
@@ -327,6 +327,112 @@ lazy_static! {
     };
 }
 ```
+
+### Memory Allocations
+
+#### Page Tables
+
+The Intel 8088 could originally address **1MB** of memory using a **20-bit** Address bus.
+
+x86_64 Expanded this to a **48-bit** Address bus, giving a maximum of **256TB**
+
+- Bits *0 - 11* is an offset to a given page.
+- Bits *12 - 21* is the **page-table** 1 index.
+- Bits *21 - 30* is the **page-table** 2 index.
+- Bits *30 - 39* is the **page-table** 3 index.
+- Bits *39 - 48* is the **page-table** 4 index.
+- the **CR3** register holds the address of the Page table 4.
+- Each **Page-table** is Exactly **4096 Bytes**, and are aligned to **4KB Boundaries**
+- Each **Page-table** Entry is the address of the lower **Page-table** to use, *for example, if the index at **PT** 4 is 16K, then the **page-table** at 16K is read.* 
+
+
+
+##### Example Page-table setup
+
+PT-4 @ 4K
+
+| Index | PT-3 Start | FLAGS |
+| ----- | ---------- | ----- |
+| 0     | 8K         | RWX   |
+| 1     | 12K        | RWX   |
+| ...   |            |       |
+| 511   | 256K       | RW    |
+
+PT-3 @ 8K
+
+| Index | PT-2 Start | FLAGS |
+| ----- | ---------- | ----- |
+| 0     | 260K       | RWX   |
+| 1     | 264K       | RWX   |
+| ...   |            |       |
+| 511   | 512K       | RW    |
+
+PT-2 @ 512K
+
+| Index | PT-1 Start | FLAGS |
+| ----- | ---------- | ----- |
+| 0     | 516K       | RWX   |
+| 1     | 520K       | RWX   |
+| ...   |            |       |
+| 511   | 768K       | RW    |
+
+PT-1 @ 520K
+
+| Index | Page Start | FLAGS |
+| ----- | ---------- | ----- |
+| 0     | 1024K      | RWX   |
+| 1     | 1028K      | RWX   |
+| ...   |            |       |
+| 511   | 1032K      | RW    |
+
+So Address 0b 000 000 001 | 111 111 111 | 111 111 111 | 111 111 111 | 0000 0000 1111 000
+would map to:
+
+PT-3 #1 -> PT-2 # 512 -> PT-1 #512 -> Offset 0x00F0.
+
+
+
+
+
+##### Rust Implementation
+
+```rust
+//memory/paging.rs
+use lazy_static::lazy_static;
+
+pub fn translate_addr(addr : VirtAddr, physical_offset : VirtAddr) -> Option<PhysAddr> {
+    _translate_addr(addr, physical_offset)
+}
+
+fn _translate_addr(addr : VirtAddr, physical_offset : VirtAddr) -> Option<PhysAddr> {
+    let (pt_4_frame, _) = Cr3::read();
+    let indexes = [
+        addr.p4_index(),
+        addr.p3_index(),
+        addr.p2_index(),
+        addr.p1_index()
+    ];
+    
+    let mut current_frame = pt_4_frame;
+    
+    for &index in &indexes {
+        let virt = physical_offset + current_frame.start_address().as_u64();
+        let table_ptr : *const PageTable = virt.as_ptr();
+        let table = unsafe {&*table_ptr};
+        frame = match frame {
+            Ok(frame) => frame,
+            Err(FrameError::FrameNotPresent) => return None,
+            Err(FrameError::HugePage) => panic!("Huge Pages Not Supported!"),
+        };
+    }
+    
+    Some(frame.start_address() + u64::from(addr.page_offset()))
+}
+
+
+```
+
+
 
 
 
