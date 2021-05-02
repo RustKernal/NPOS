@@ -38,17 +38,34 @@ use volatile::Volatile;
 //80 x 25 Text Mode
 const SCREEN_WIDTH:usize = 80; 
 const SCREEN_HEIGHT:usize = 25;
+const TEXT_MODE_START:usize = 0xb8000;
 
 pub fn screen_dimensions() -> (usize, usize) {
     return (SCREEN_WIDTH, SCREEN_HEIGHT)
 }
 
 pub enum Color {
-    //.. VGA Color Codes
+    Black = 0,
+    Blue = 1,
+    Green = 2,
+    Cyan = 3,
+    Red = 4,
+    Magenta = 5,
+    Brown = 6,
+    LightGray = 7,
+    DarkGray = 8,
+    LightBlue = 9,
+    LightGreen = 10,
+    LightCyan = 11,
+    LightRed = 12,
+    Pink = 13,
+    Yellow = 14,
+    White = 15,
 } 
 
 
 #[repr(transparent)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ColorCode(u8);
 
 impl ColorCode {
@@ -69,6 +86,7 @@ impl ColorCode {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)]
 pub struct Character {
     ascii_char : u8,
@@ -83,8 +101,8 @@ pub struct ScreenBuffer {
 
 impl ScreenBuffer {
     
-    pub fn new() -> ScreenBuffer {
-        unsafe { &mut *(0xb8000 as *mut ScreenBuffer) }
+    pub fn new() -> &'static mut ScreenBuffer {
+        unsafe { &mut *(TEXT_MODE_START as *mut ScreenBuffer) }
     }
     
 	pub fn get_codepoint(&mut self, x:usize, y:usize) -> u8 {
@@ -112,33 +130,38 @@ impl ScreenBuffer {
 
 ```rust
 //terminal.rs
-use crate::drivers::vga;
+use crate::vga;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
 lazy_static! {
-    static const ref TERMINAL : Mutex<Terminal> = Mutex::new(
+    static ref TERMINAL : Mutex<Terminal> = Mutex::new(
         Terminal::new()
-    ) 
-};
+    ); 
+}
 
 
 pub struct Terminal {
     row	   : u8,
     col	   : u8,
-    color  : vga::ColorCode
-    buffer : vga::ScreenBuffer
+    color  : vga::ColorCode,
+    buffer : &'static mut vga::ScreenBuffer
 }
 
 impl Terminal {
     pub fn new() -> Terminal {
-        Terminal { buffer : vga::ScreenBuffer::new() }
+        Terminal {
+            row     : 0,
+            col     : 0,
+            color   : vga::ColorCode::new(vga::Color::White, vga::Color::Blue),
+            buffer  : vga::ScreenBuffer::new()
+        }
     }
     
     pub fn print(&mut self, s:&str) {
         for b in s.as_bytes() {
             match b {
-            	0x20 .. 0x7e => { self._print_byte(b)    }
+            	0x20..=0x7e => { self._print_byte(*b)    }
                 _ =>			{ self._print_byte(0xFE) }
             }
         }
@@ -146,26 +169,26 @@ impl Terminal {
     
     fn _print_byte(&mut self, data:u8) {
         let (max_col, _) = vga::screen_dimensions();
-        if self.col >= max_col | data == b'\n' { self.new_line(); }
+        if self.col >= max_col as u8 || data == b'\n' { self.new_line(); }
         if data == b'\r' { self.carriage_return(); }
-        self.buffer.put_char(col, row, Character {
-            ascii_char:data,
-            color : self.color
-        });
+        self.buffer.set_char(self.col.into(), self.row.into(), vga::Character::new(data, self.color));
         self.col += 1;
     }
     
     fn new_line(&mut self) {
-        row += 1;
+        
         let (max_col, max_row) = vga::screen_dimensions();
-        if self.row == max_row - 1 {
+        if self.row == (max_row - 1) as u8 {
             for y in 1..max_row {
                 for x in 0..max_col {
                     let c = self.buffer.get_char(x,y);
                     self.buffer.set_char(x,y-1, c);
                 }
             }
+        } else {
+            self.row += 1;
         }
+
         self.carriage_return();
     }
     
@@ -194,19 +217,15 @@ pub macro println($($arg:tt)*) {
     crate::terminal::_println(format_args!($($arg)*))
 }
 
-pub macro println() {
-    crate::terminal::_println(b'\n')
-}
-
 #[doc(hidden)]
 pub fn _print(args : fmt::Arguments) {
-    use core::fmt::write;
+    use core::fmt::Write;
     TERMINAL.lock().write_fmt(args).unwrap();
 }
 
 #[doc(hidden)]
 pub fn _println(args : fmt::Arguments) {
-    use core::fmt::write;
+    use core::fmt::Write;
     TERMINAL.lock().write_fmt(args).unwrap();
 }
 ```

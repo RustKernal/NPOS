@@ -19,6 +19,7 @@ name = "blog_os"
 version = "0.1.0"
 dependencies = [
  "bootloader",
+ "kernal",
  "lazy_static",
  "spin",
  "uart_16550",
@@ -31,6 +32,18 @@ name = "bootloader"
 version = "0.9.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8cb1dc91ba8f16c89133c569bc2516833a632a654d61d228b16ae8d2bad5ed8a"
+
+[[package]]
+name = "kernal"
+version = "0.1.0"
+dependencies = [
+ "bootloader",
+ "lazy_static",
+ "spin",
+ "uart_16550",
+ "volatile 0.2.7",
+ "x86_64 0.14.0",
+]
 
 [[package]]
 name = "lazy_static"
