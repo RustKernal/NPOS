@@ -11,10 +11,10 @@ lazy_static! {
 
 
 pub struct Terminal {
-    row	   : u8,
-    col	   : u8,
-    color  : vga::ColorCode,
-    buffer : &'static mut vga::ScreenBuffer
+    pub(crate) row	   : u8,
+    pub(crate) col	   : u8,
+    pub(crate) color   : vga::ColorCode,
+    pub(crate) buffer  : &'static mut vga::ScreenBuffer
 }
 
 impl Terminal {
@@ -38,7 +38,7 @@ impl Terminal {
     
     fn _print_byte(&mut self, data:u8) {
         let (max_col, _) = vga::screen_dimensions();
-        if self.col >= (max_col as u8)-1 || data == b'\n' { self.new_line(); return; }
+        if self.col >= (max_col as u8)-0 || data == b'\n' { self.new_line(); return; }
         if data == b'\r' { self.carriage_return(); }
         self.buffer.set_char(self.col.into(), self.row.into(), vga::Character::new(data, self.color));
         self.col += 1;
@@ -101,7 +101,9 @@ pub macro println($($arg:tt)*) {
 }
 
 pub macro error($($arg:tt)*) {
-    crate::terminal::print!("{}\n", format_args!($($arg)*))
+    {
+        crate::terminal::print!("{}\n", format_args!($($arg)*))
+    }
 }
 
 pub macro clear() {
@@ -132,4 +134,14 @@ pub fn _clear() {
 #[doc(hidden)]
 pub fn _set_position(x:usize, y:usize) {
     TERMINAL.lock()._set_position(x as u8,y as u8);
+}
+
+#[doc(hidden)]
+pub fn _get_foreground(x:usize, y:usize) -> u8 {
+    TERMINAL.lock().buffer.get_fg_color(x,y)
+}
+
+#[doc(hidden)]
+pub fn _get_background(x:usize, y:usize) -> u8 {
+    TERMINAL.lock().buffer.get_bg_color(x,y)
 }

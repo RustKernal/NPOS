@@ -5,6 +5,7 @@ use spin::Mutex;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 use crate::terminal;
 use crate::gdt;
+use crate::pics;
 
 
 
@@ -16,6 +17,8 @@ lazy_static! {
             idt.double_fault.set_handler_fn(double_fault_handler)
                 .set_stack_index(gdt::DOUBLE_FAULT_FIRST_INDEX);
         }
+
+        idt[pics::InterruptIndex::Timer.as_usize()].set_handler_fn(timer_interrupt_handler);
 
         idt
     };
@@ -41,4 +44,14 @@ extern "x86-interrupt" fn double_fault_handler(frame :InterruptStackFrame,
 _ec : u64) -> ! {
     terminal::error!("{:?}", frame);
     loop {}
+}
+
+static mut int_count : usize = 0;
+
+extern "x86-interrupt" fn timer_interrupt_handler(
+    _stack_frame: InterruptStackFrame)
+{
+    unsafe {int_count += 1;}
+    unsafe {terminal::println!("Hello Interrupt #{}", int_count)};
+    pics::clear_interrupt(pics::InterruptIndex::Timer);
 }
