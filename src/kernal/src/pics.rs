@@ -28,3 +28,4 @@ pub fn clear_interrupt(index : InterruptIndex) {
         PICS.lock().notify_end_of_interrupt(index.as_u8());
     }
 }
+

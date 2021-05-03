@@ -15,8 +15,8 @@ pub extern "C" fn _start() -> ! {
     kernal::init();
     kernal::enable_interrupts();
     let mut i:u128 = 0;
-    kernal::spin!();
-    loop {/*println!("Hello #{}",i); i += 1*/}
+    //kernal::spin!();
+    loop {println!("Hello #{}",i); i += 1; kernal::pause_for(30);}
 }
 
 #[panic_handler]

@@ -37,6 +37,10 @@ impl ColorCode {
     pub fn new(fg:Color, bg:Color) -> ColorCode {
         ColorCode ((bg as u8) << 4 | fg as u8)
     }
+
+    pub fn from_u8s(fg:u8, bg:u8) -> ColorCode {
+        ColorCode ((bg as u8) << 4 | fg as u8)
+    }
     
     pub fn as_u8(&mut self) -> u8 {
         self.0

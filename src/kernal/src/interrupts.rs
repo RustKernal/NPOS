@@ -52,6 +52,6 @@ extern "x86-interrupt" fn timer_interrupt_handler(
     _stack_frame: InterruptStackFrame)
 {
     unsafe {int_count += 1;}
-    unsafe {terminal::println!("Hello Interrupt #{}", int_count)};
+   // unsafe {terminal::println!("Hello Interrupt #{}\n", int_count)};
     pics::clear_interrupt(pics::InterruptIndex::Timer);
 }

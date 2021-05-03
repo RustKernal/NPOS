@@ -3,6 +3,8 @@ use crate::vga;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
+use x86_64::instructions::interrupts::without_interrupts;
+
 lazy_static! {
     static ref TERMINAL : Mutex<Terminal> = Mutex::new(
         Terminal::new()
@@ -54,6 +56,7 @@ impl Terminal {
                     self.buffer.set_char(x,y-1, c);
                 }
             }
+            self._clear_row();
         } else {
             self.row += 1;
         }
@@ -75,9 +78,22 @@ impl Terminal {
         }
     }
 
+    pub fn _clear_row(&mut self) {
+        let c = vga::Character::new(b' ', self.color);
+        let (max_col, max_row) = vga::screen_dimensions();
+            for x in 0..max_col {
+                self.buffer.set_char(x,self.row.into(),c);
+            }
+    }
+
     pub fn _set_position(&mut self, x:u8, y:u8) {
         self.col = x;
         self.row = y;
+    }
+
+    pub fn set_bg_color(&mut self, color : u8) {
+        let fg = self.color.get_foreground();
+        self.color = vga::ColorCode::from_u8s(fg, color);
     }
 }
 
@@ -93,7 +109,7 @@ impl fmt::Write for Terminal {
 
 
 pub macro print($($arg:tt)*) {
-    crate::terminal::_print(format_args!($($arg)*))
+        crate::terminal::_print(format_args!($($arg)*))
 }
 
 pub macro println($($arg:tt)*) {
@@ -101,9 +117,8 @@ pub macro println($($arg:tt)*) {
 }
 
 pub macro error($($arg:tt)*) {
-    {
+
         crate::terminal::print!("{}\n", format_args!($($arg)*))
-    }
 }
 
 pub macro clear() {
@@ -114,34 +129,61 @@ pub macro set_position($x:expr, $y:expr) {
     crate::terminal::_set_position($x, $y);
 }
 
+pub macro set_background($color:expr) {
+    crate::terminal::_set_bg_color($color);
+}
+
 #[doc(hidden)]
 pub fn _print(args : fmt::Arguments) {
     use core::fmt::Write;
-    TERMINAL.lock().write_fmt(args).unwrap();
+    without_interrupts(|| { 
+        TERMINAL.lock().write_fmt(args).unwrap();
+    });
 }
 
 #[doc(hidden)]
 pub fn _println(args : fmt::Arguments) {
     use core::fmt::Write;
-    TERMINAL.lock().write_fmt(args).unwrap();
+    without_interrupts(|| { 
+        TERMINAL.lock().write_fmt(args).unwrap();
+    });
 }
 
 #[doc(hidden)]
 pub fn _clear() {
-    TERMINAL.lock()._clear();
+    without_interrupts(|| { 
+        TERMINAL.lock()._clear();
+    });
 }
 
 #[doc(hidden)]
 pub fn _set_position(x:usize, y:usize) {
-    TERMINAL.lock()._set_position(x as u8,y as u8);
+    without_interrupts(|| { 
+        TERMINAL.lock()._set_position(x as u8,y as u8);
+    });
+}
+
+#[doc(hidden)]
+pub fn _set_bg_color(color : u8) {
+    without_interrupts(|| { 
+        TERMINAL.lock().set_bg_color(color);
+    });
 }
 
 #[doc(hidden)]
 pub fn _get_foreground(x:usize, y:usize) -> u8 {
-    TERMINAL.lock().buffer.get_fg_color(x,y)
+    let mut c : u8 = 0;
+    without_interrupts(|| { 
+        c = TERMINAL.lock().buffer.get_fg_color(x,y)
+    });
+    c
 }
 
 #[doc(hidden)]
 pub fn _get_background(x:usize, y:usize) -> u8 {
-    TERMINAL.lock().buffer.get_bg_color(x,y)
+    let mut c : u8 = 0;
+    without_interrupts(|| { 
+        c = TERMINAL.lock().buffer.get_bg_color(x,y)
+    });
+    c
 }
