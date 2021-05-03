@@ -6,6 +6,7 @@ use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 use crate::terminal;
 use crate::gdt;
 use crate::pics;
+use crate::keyboard;
 
 
 
@@ -19,6 +20,8 @@ lazy_static! {
         }
 
         idt[pics::InterruptIndex::Timer.as_usize()].set_handler_fn(timer_interrupt_handler);
+        idt[pics::InterruptIndex::Keyboard.as_usize()].set_handler_fn(keyboard_interrupt_handler); 
+
 
         idt
     };
@@ -54,4 +57,21 @@ extern "x86-interrupt" fn timer_interrupt_handler(
     unsafe {int_count += 1;}
    // unsafe {terminal::println!("Hello Interrupt #{}\n", int_count)};
     pics::clear_interrupt(pics::InterruptIndex::Timer);
+}
+
+extern "x86-interrupt" fn keyboard_interrupt_handler(
+    _stack_frame:  InterruptStackFrame)
+{
+    if let Some(key) = keyboard::read_unicode_key() {
+        if key == '\u{8}' {
+            terminal::backspace()
+        } else {
+            terminal::print!("{:}",key);
+        }
+    }
+
+    unsafe {
+        pics::PICS.lock()
+            .notify_end_of_interrupt(pics::InterruptIndex::Keyboard.as_u8());
+    }
 }

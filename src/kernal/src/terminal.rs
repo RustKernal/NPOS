@@ -92,9 +92,27 @@ impl Terminal {
     }
 
     pub fn set_bg_color(&mut self, color : u8) {
-        let fg = self.color.get_foreground();
-        self.color = vga::ColorCode::from_u8s(fg, color);
+        self.color.set_background(color);
     }
+
+    pub fn set_color_u8(&mut self, fg : u8, bg : u8) {
+        self.color = vga::ColorCode::from_u8s(fg, bg);
+    }
+
+    pub fn backspace(&mut self) {
+        if self.col == 0 {
+            if self.row > 0 {
+                self.row -= 1;
+                self.col = 79;
+            }
+        } 
+
+        if self.col > 0 {
+            self.col -= 1;
+            self._print_byte(b' ');
+            self.col -= 1;
+        }
+    } 
 }
 
 
@@ -186,4 +204,28 @@ pub fn _get_background(x:usize, y:usize) -> u8 {
         c = TERMINAL.lock().buffer.get_bg_color(x,y)
     });
     c
+}
+
+pub fn set_color_u8(fg : u8, bg : u8) {
+    without_interrupts(|| {
+        TERMINAL.lock().set_color_u8(fg, bg);
+    });
+}
+
+pub fn clear_row() {
+    without_interrupts(|| {
+        TERMINAL.lock()._clear_row();
+    });
+}
+
+pub fn newline() {
+    without_interrupts(|| {
+        TERMINAL.lock().new_line();
+    });
+}
+
+pub fn backspace() {
+    without_interrupts(|| {
+        TERMINAL.lock().backspace();
+    });
 }

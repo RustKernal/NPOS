@@ -10,7 +10,8 @@ pub static PICS : spin::Mutex<ChainedPics> =
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum InterruptIndex {
-    Timer = PIC_1_OFFSET
+    Timer = PIC_1_OFFSET,
+    Keyboard
 }
 
 impl InterruptIndex {

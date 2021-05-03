@@ -7,16 +7,21 @@ use kernal::terminal::{
     print,
     clear,
     error,
-    set_position
+    set_position,
+    set_background
 };  
 
+use kernal::vga::Color;
+use kernal::terminal;
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     kernal::init();
     kernal::enable_interrupts();
-    let mut i:u128 = 0;
-    //kernal::spin!();
-    loop {println!("Hello #{}",i); i += 1; kernal::pause_for(30);}
+    kernal::set_tick_rate(1000);
+    terminal::clear!();
+    loop {
+        kernal::pause_for(1);
+    }
 }
 
 #[panic_handler]

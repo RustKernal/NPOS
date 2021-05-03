@@ -9,6 +9,7 @@ pub fn screen_dimensions() -> (usize, usize) {
     return (SCREEN_WIDTH, SCREEN_HEIGHT)
 }
 
+#[repr(u8)]
 pub enum Color {
     Black = 0,
     Blue = 1,
@@ -27,6 +28,19 @@ pub enum Color {
     Yellow = 14,
     White = 15,
 } 
+
+impl Color {
+    pub fn from_u8(value : u8) -> Color {
+        match value {
+            00 => Color::Black,
+            01 => Color::Blue,
+            02 => Color::Green,
+            03 => Color::Cyan,
+            04 => Color::Red,
+            _ => Color::White
+        }
+    } 
+}
 
 
 #[repr(transparent)]
@@ -53,6 +67,11 @@ impl ColorCode {
     pub fn get_foreground(&mut self) -> u8 {
         (self.as_u8() & 0x0F)
     }
+
+    pub fn set_background(&mut self, color : u8) {
+        let bg = color;
+        self.0 = bg << 4 | self.as_u8() & 0x0F;
+    } 
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
