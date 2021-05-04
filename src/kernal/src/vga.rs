@@ -120,6 +120,11 @@ impl ScreenBuffer {
         self.get_char(x,y).color.get_background()
     }
 
+    pub fn set_cell_attribs(&mut self, x:usize, y:usize, color : ColorCode) {
+    let old_char = self.get_char(x,y).ascii_char;
+       self.set_char(x,y, Character::new(old_char, color));
+    } 
+
     fn check_bound(x:usize, y:usize) {
         if (
             (x < 0 || x >= SCREEN_WIDTH) &&

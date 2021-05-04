@@ -9,6 +9,10 @@ pub mod pics;
 pub mod pit;
 pub mod keyboard;
 
+pub fn post() {
+    post_fail!(POST_FAIL_TERMINAL);
+}
+
 pub fn init() {
     gdt::init_gdt();
     interrupts::init_idt();
@@ -19,6 +23,10 @@ pub fn init() {
 
 pub fn enable_interrupts() {
     x86_64::instructions::interrupts::enable();
+}
+
+pub fn disable_interrupts() {
+    x86_64::instructions::interrupts::disable();
 }
 
 pub macro breakpoint() {
@@ -44,3 +52,14 @@ pub fn set_tick_rate(hertz : usize) {
         pit::set_reload_value(reload_value);
     }
 }
+
+pub macro post_fail($code:expr) {
+    fail_post($code);
+}
+
+fn fail_post(code : usize) {
+    panic!("Post Failed [EC: [0x{:04x}]", code);
+}
+
+
+pub static POST_FAIL_TERMINAL : usize = 0x0100;

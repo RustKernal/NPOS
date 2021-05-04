@@ -8,6 +8,8 @@ use crate::gdt;
 use crate::pics;
 use crate::keyboard;
 
+use pc_keyboard::KeyCode;
+
 
 
 lazy_static! {
@@ -67,6 +69,13 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(
             terminal::backspace()
         } else {
             terminal::print!("{:}",key);
+        }
+    } else {
+        if let Some(key) = keyboard::read_rawkey() {
+            match key {
+                KeyCode::F1 => {terminal::clear!(); terminal::set_position!(0,0); terminal::update_cursor();}
+                _ => {}
+            }
         }
     }
 

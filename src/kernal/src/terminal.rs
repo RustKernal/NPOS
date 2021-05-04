@@ -5,6 +5,8 @@ use spin::Mutex;
 
 use x86_64::instructions::interrupts::without_interrupts;
 
+pub static TAB_LENGTH : usize = 4;
+
 lazy_static! {
     static ref TERMINAL : Mutex<Terminal> = Mutex::new(
         Terminal::new()
@@ -32,7 +34,7 @@ impl Terminal {
     pub fn print(&mut self, s:&str) {
         for b in s.as_bytes() {
             match b {
-            	0x20..=0x7e | b'\n' => { self._print_byte(*b) }
+            	0x20..=0x7e | b'\n' | b'\t' => { self._print_byte(*b) }
                 _ =>			{ self._print_byte(0xFE) }
             }
         }
@@ -41,13 +43,16 @@ impl Terminal {
     fn _print_byte(&mut self, data:u8) {
         let (max_col, _) = vga::screen_dimensions();
         if self.col >= (max_col as u8)-0 || data == b'\n' { self.new_line(); return; }
-        if data == b'\r' { self.carriage_return(); }
+        if data == b'\r' { self.carriage_return(); return; }
+        if data == b'\t' { self.tab(); return; }
         self.buffer.set_char(self.col.into(), self.row.into(), vga::Character::new(data, self.color));
         self.col += 1;
+
+        self.cursor(self.col.into(), self.row.into());
     }
     
     fn new_line(&mut self) {
-        
+        self.clear_cursor(self.col as usize, self.row as usize );
         let (max_col, max_row) = vga::screen_dimensions();
         if self.row == (max_row - 1) as u8 {
             for y in 1..max_row {
@@ -62,6 +67,7 @@ impl Terminal {
         }
 
         self.carriage_return();
+        self.cursor(self.col.into(), self.row.into());
     }
     
     fn carriage_return(&mut self) {
@@ -99,20 +105,61 @@ impl Terminal {
         self.color = vga::ColorCode::from_u8s(fg, bg);
     }
 
+    pub fn tab(&mut self) {
+        for _ in 0..TAB_LENGTH {
+            self._print_byte(b' ');
+        }
+    }
+
     pub fn backspace(&mut self) {
+        self.clear_cursor(self.col as usize, self.row as usize );
         if self.col == 0 {
             if self.row > 0 {
                 self.row -= 1;
                 self.col = 79;
             }
         } 
-
         if self.col > 0 {
             self.col -= 1;
             self._print_byte(b' ');
             self.col -= 1;
         }
+        self.clear_cursor(self.col as usize + 1, self.row as usize);
+        self.cursor(self.col as usize, self.row as usize );
     } 
+
+
+    pub fn cursor(&mut self, x:usize, y:usize) {
+        self.buffer.set_cell_attribs(x,y, vga::ColorCode::new(
+            vga::Color::Black,
+            vga::Color::White,
+        ));
+    }
+
+    pub fn clear_cursor(&mut self, x:usize, y:usize) {
+        self.buffer.set_cell_attribs(x,y, vga::ColorCode::new(
+            vga::Color::White,
+            vga::Color::Blue,
+        ));
+    }
+
+    pub fn translate_cursor(&mut self, x:isize, y:isize) {
+        let (max_col, max_row) = vga::screen_dimensions();
+        self.clear_cursor(self.col as usize, self.row as usize);
+        if 
+            self.col > 0 && self.col < max_col as u8 &&
+            self.row > 0 && self.row < max_row as u8
+        {
+            self.col += x as u8;
+            self.row += y as u8;
+        }
+        self.cursor(self.col as usize, self.row as usize );
+    }
+
+    pub fn update_cursor(&mut self) {
+        self.clear_cursor(self.col as usize, self.row as usize);
+        self.cursor(self.col as usize, self.row as usize );
+    }
 }
 
 
@@ -227,5 +274,23 @@ pub fn newline() {
 pub fn backspace() {
     without_interrupts(|| {
         TERMINAL.lock().backspace();
+    });
+}
+
+pub fn tab() {
+    without_interrupts(|| {
+        TERMINAL.lock().tab();
+    });
+}
+
+pub fn update_cursor() {
+    without_interrupts(|| {
+        TERMINAL.lock().update_cursor();
+    });
+}
+
+pub fn cursor(x:usize, y:usize) {
+    without_interrupts(|| {
+        TERMINAL.lock().cursor(x,y);
     });
 }
