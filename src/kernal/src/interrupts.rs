@@ -7,6 +7,7 @@ use crate::terminal;
 use crate::gdt;
 use crate::pics;
 use crate::keyboard;
+use crate::serial;
 
 use pc_keyboard::KeyCode;
 
@@ -32,7 +33,9 @@ lazy_static! {
 
 
 pub fn init_idt() {
+    serial::print!("Loading IDT...");
     IDT.load();
+    serial::println!("[OK]");
 }
 
 
@@ -65,10 +68,15 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(
     _stack_frame:  InterruptStackFrame)
 {
     if let Some(key) = keyboard::read_unicode_key() {
+        
         if key == '\u{8}' {
             terminal::backspace()
         } else {
-            terminal::print!("{:}",key);
+            if terminal::get_column() < 79 {
+                terminal::print!("{:}",key);
+            } else {
+                terminal::newline();
+            }
         }
     } else {
         if let Some(key) = keyboard::read_rawkey() {

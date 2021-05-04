@@ -42,7 +42,7 @@ impl Terminal {
     
     fn _print_byte(&mut self, data:u8) {
         let (max_col, _) = vga::screen_dimensions();
-        if self.col >= (max_col as u8)-0 || data == b'\n' { self.new_line(); return; }
+        if self.col == (max_col as u8) || data == b'\n' { self.new_line(); return; }
         if data == b'\r' { self.carriage_return(); return; }
         if data == b'\t' { self.tab(); return; }
         self.buffer.set_char(self.col.into(), self.row.into(), vga::Character::new(data, self.color));
@@ -293,4 +293,18 @@ pub fn cursor(x:usize, y:usize) {
     without_interrupts(|| {
         TERMINAL.lock().cursor(x,y);
     });
+}
+
+pub fn translate_cursor(x:isize, y:isize) {
+    without_interrupts(|| {
+        TERMINAL.lock().translate_cursor(x,y);
+    });
+}
+
+pub fn get_column() -> u8 {
+    let mut c : u8 = 0;
+    without_interrupts(|| {
+        c = TERMINAL.lock().col;
+    });
+    c
 }

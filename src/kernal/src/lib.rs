@@ -8,9 +8,11 @@ pub mod gdt;
 pub mod pics;
 pub mod pit;
 pub mod keyboard;
+pub mod serial;
 
 pub fn post() {
-    post_fail!(POST_FAIL_TERMINAL);
+    serial::print!("Running POST...");
+    serial::println!("[OK]");
 }
 
 pub fn init() {
