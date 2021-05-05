@@ -10,14 +10,19 @@ pub mod pit;
 pub mod keyboard;
 pub mod serial;
 
+use bootloader::BootInfo; 
+use x86_memory_allocation;
+use x86_64::VirtAddr;
+
 pub fn post() {
     serial::print!("Running POST...");
     serial::println!("[OK]");
 }
 
-pub fn init() {
+pub fn init(boot_info : &'static BootInfo) {
     gdt::init_gdt();
     interrupts::init_idt();
+    unsafe {x86_memory_allocation::init(VirtAddr::new(boot_info.physical_memory_offset)); }
     unsafe {
         pics::PICS.lock().initialize();
     }

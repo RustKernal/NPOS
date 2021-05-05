@@ -41,6 +41,7 @@ impl Terminal {
     }
     
     fn _print_byte(&mut self, data:u8) {
+        if self.col >= 79 {self.new_line()}
         let (max_col, _) = vga::screen_dimensions();
         if self.col == (max_col as u8) || data == b'\n' { self.new_line(); return; }
         if data == b'\r' { self.carriage_return(); return; }
@@ -106,6 +107,7 @@ impl Terminal {
     }
 
     pub fn tab(&mut self) {
+        //if self.col >= 75 {self.new_line()}
         for _ in 0..TAB_LENGTH {
             self._print_byte(b' ');
         }

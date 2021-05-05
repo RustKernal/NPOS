@@ -11,19 +11,24 @@ use kernal::terminal::{
     set_position,
     set_background
 };  
-
 use kernal::vga::Color;
 use kernal::terminal;
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
-    kernal::init();
+
+use bootloader::{BootInfo, entry_point};
+
+entry_point!(kernal_main);
+
+pub fn kernal_main(boot_info : &'static BootInfo) -> ! {
+    kernal::init(boot_info);
     kernal::post();
     kernal::enable_interrupts();
     kernal::set_tick_rate(1000);
     terminal::clear!();
     terminal::update_cursor();
 
-    kernal::crash();
+
+
+    //kernal::crash();
 
     loop {
         kernal::pause_for(1);

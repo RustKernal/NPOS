@@ -25,6 +25,7 @@ dependencies = [
  "uart_16550",
  "volatile 0.2.7",
  "x86_64 0.14.0",
+ "x86_memory_allocation",
 ]
 
 [[package]]
@@ -50,7 +51,8 @@ dependencies = [
  "spin",
  "uart_16550",
  "volatile 0.2.7",
- "x86_64 0.14.0",
+ "x86_64 0.13.6",
+ "x86_memory_allocation",
 ]
 
 [[package]]
@@ -124,4 +126,14 @@ dependencies = [
  "bit_field",
  "bitflags",
  "volatile 0.4.4",
+]
+
+[[package]]
+name = "x86_memory_allocation"
+version = "0.1.0"
+dependencies = [
+ "bootloader",
+ "spin",
+ "volatile 0.2.7",
+ "x86_64 0.13.6",
 ]

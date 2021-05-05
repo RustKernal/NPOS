@@ -19,6 +19,7 @@ volatile = "0.2.6"
 x86_64 = "0.14.0"
 uart_16550 = "0.2.0"
 kernal = { version = "0.1.0", path = "src/kernal" }
+x86_memory_allocation = { version = "0.1.0", path = "src/x86_memory_allocation" }
 
 [dependencies.lazy_static]
 version = "1.0"
