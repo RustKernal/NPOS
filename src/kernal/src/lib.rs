@@ -64,4 +64,10 @@ fn fail_post(code : usize) {
 }
 
 
+pub fn crash() {
+    unsafe {
+        *(0xdeadbeef as *mut u64) = 42;
+    };
+}
+
 pub static POST_FAIL_TERMINAL : usize = 0x0100;

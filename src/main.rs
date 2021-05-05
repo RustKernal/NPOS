@@ -22,6 +22,9 @@ pub extern "C" fn _start() -> ! {
     kernal::set_tick_rate(1000);
     terminal::clear!();
     terminal::update_cursor();
+
+    kernal::crash();
+
     loop {
         kernal::pause_for(1);
     }

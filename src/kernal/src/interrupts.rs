@@ -17,10 +17,10 @@ lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
         idt.breakpoint.set_handler_fn(breakpoint_handler);
-        unsafe {
-            idt.double_fault.set_handler_fn(double_fault_handler)
-                .set_stack_index(gdt::DOUBLE_FAULT_FIRST_INDEX);
-        }
+        // unsafe {
+        //     idt.double_fault.set_handler_fn(double_fault_handler)
+        //         .set_stack_index(gdt::DOUBLE_FAULT_FIRST_INDEX);
+        // }
 
         idt[pics::InterruptIndex::Timer.as_usize()].set_handler_fn(timer_interrupt_handler);
         idt[pics::InterruptIndex::Keyboard.as_usize()].set_handler_fn(keyboard_interrupt_handler); 
@@ -41,14 +41,14 @@ pub fn init_idt() {
 
 //requires #![features(x86_abi)]
 extern "x86-interrupt" fn breakpoint_handler(
-    stack_frame: InterruptStackFrame)
+    stack_frame: &mut InterruptStackFrame)
 {
     terminal::clear!();
     terminal::set_position!(0,0);
     terminal::println!("EXCEPTION: BREAKPOINT\n{:#?}", stack_frame);
 }
 
-extern "x86-interrupt" fn double_fault_handler(frame :InterruptStackFrame,
+extern "x86-interrupt" fn double_fault_handler(frame : &mut InterruptStackFrame,
 _ec : u64) -> ! {
     terminal::error!("{:?}", frame);
     loop {}
@@ -57,7 +57,7 @@ _ec : u64) -> ! {
 static mut int_count : usize = 0;
 
 extern "x86-interrupt" fn timer_interrupt_handler(
-    _stack_frame: InterruptStackFrame)
+    _stack_frame: &mut InterruptStackFrame)
 {
     unsafe {int_count += 1;}
    // unsafe {terminal::println!("Hello Interrupt #{}\n", int_count)};
@@ -65,7 +65,7 @@ extern "x86-interrupt" fn timer_interrupt_handler(
 }
 
 extern "x86-interrupt" fn keyboard_interrupt_handler(
-    _stack_frame:  InterruptStackFrame)
+    _stack_frame:  &mut InterruptStackFrame)
 {
     if let Some(key) = keyboard::read_unicode_key() {
         
